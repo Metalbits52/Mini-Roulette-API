@@ -102,7 +102,7 @@ app.post('/login', async (req, res) => {
     {
       const token = GenerateJWT(result.rows[0].id, result.rows[0].username, result.rows[0].role);
 
-      client.query("UPDATE users SET last_login = NOW() AND token = $1 WHERE id = $2", [token, result.rows[0].id])
+      client.query("UPDATE users SET last_login = NOW(), token = $1 WHERE id = $2", [token, result.rows[0].id])
 
       res.status(200).json({
         status: true,
