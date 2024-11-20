@@ -20,8 +20,8 @@ client.connect();
 
 const corsOptions = {
   origin: '*',
-  methods: 'GET,POST',
-  allowedHeaders: 'Content-Type,Authorization',
+  methods: 'GET, POST',
+  allowedHeaders: 'Content-Type, Authorization',
 };
 
 app.use(cors(corsOptions));
@@ -165,7 +165,7 @@ app.post('/register', async (req, res) => {
 });
 
 app.post('/getUser', verifyToken, (req, res) => {
-  client.query("SELECT * FROM users WHERE user_id = $1", [req.user.userId])
+  client.query("SELECT * FROM users WHERE id = $1", [req.user.userId])
   .then(async (result) => {
     if(result.rows.length > 0)
     {
