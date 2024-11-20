@@ -18,7 +18,12 @@ const { error } = require("console");
 const client = new Client(config);
 client.connect();
 
-app.use(cors());
+const corsOptions = {
+  origin: 'https://mini-roulette-phaser-o7ec.onrender.com',
+  optionsSuccessStatus: 200,
+};
+
+app.use(cors(corsOptions));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
