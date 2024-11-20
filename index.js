@@ -18,7 +18,13 @@ const { error } = require("console");
 const client = new Client(config);
 client.connect();
 
-app.use(cors({ origin: true, credentials: true }))
+const corsOptions = {
+  origin: '*',
+  methods: 'GET,POST',
+  allowedHeaders: 'Content-Type,Authorization',
+};
+
+app.use(cors(corsOptions));
 app.use(bodyParser.json({limit: '50mb'}));
 app.use(bodyParser.urlencoded({ limit: '50mb', extended: false, parameterLimit:50000 }));
 
