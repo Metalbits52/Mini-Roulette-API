@@ -212,8 +212,8 @@ app.post('/mini-roulette/play', verifyToken, async (req, res) => {
     }
   }
 
-  let selectedWallet = await client.query(`SELECT * FROM wallets WHERE owner_id = $1 AND wallet_type = $2`, [req.user.userId, currencyType]);
-  if(selectedWallet.rows[0].balance < Number(totalBet))
+  let user = await client.query(`SELECT * FROM users WHERE id = $1`, [req.user.userId]);
+  if(user.rows[0].balance < Number(totalBet))
   {
     let response = {
       status: false,
@@ -224,6 +224,7 @@ app.post('/mini-roulette/play', verifyToken, async (req, res) => {
     return res.status(200).json(response);
   }
 
+  /*
   let luck = Math.floor(Math.random() * 101);
   let spinResult;
   
@@ -252,34 +253,46 @@ app.post('/mini-roulette/play', verifyToken, async (req, res) => {
     
     totalWinlose = totalWin - totalBet;  
   } while(totalWinlose > 0 && luck < 30)
+  */
+
+  let spinResult = await spinWheel();
+
+  if (bets.hasOwnProperty(spinResult.number)) {
+    totalWin += bets[spinResult.number] * 10.5;
+  }
+
+  if(bets.hasOwnProperty(spinResult.color))
+  {
+    totalWin += bets[spinResult.color] * 1.95;
+  }
+
+  if(bets.hasOwnProperty(spinResult.oddEven))
+  {
+    totalWin += bets[spinResult.oddEven] * 1.95;
+  }
+
+  if(bets.hasOwnProperty(spinResult.numSize))
+  {
+    totalWin += bets[spinResult.numSize] * 1.95;
+  }
   
+  totalWinlose = totalWin - totalBet;  
+
   let match = await client.query(
-    "INSERT INTO mr_matches (user_id, currency, bet_info, result, total_win, total_win_lose, merchant) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *",
-    [req.user.userId, currencyType, bets, spinResult, totalWin, totalWinlose  , req.user.merchant]
+    "INSERT INTO matches (user_id, bet_info, result, total_win_lose) VALUES ($1, $2, $3, $4) RETURNING *",
+    [req.user.userId, bets, spinResult, totalWinlose]
   );
 
-  let wallet = await client.query(
-    "UPDATE wallets SET balance = (balance + $1) WHERE wallet_type = $2 AND owner_id = $3 RETURNING *",
-    [totalWinlose, currencyType, req.user.userId]
+  user = await client.query(
+    "UPDATE users SET balance = (balance + $1) WHERE id = $2 RETURNING *",
+    [totalWinlose, req.user.userId]
   );
 
   await client.query(
-    "INSERT INTO transactions (wallet_id, \"from\", \"to\", amount, transaction_type, remark) VALUES ($1, $2, $3, $4, $5, $6)",
-    [wallet.rows[0].id, parseFloat(wallet.rows[0].balance - totalWinlose), parseFloat(wallet.rows[0].balance), totalWinlose, "MR", "Match Id = "+match.rows[0].id]
+    "INSERT INTO transactions (user_id, \"from\", \"to\", amount, remark) VALUES ($1, $2, $3, $4, $5)",
+    [user.rows[0].id, parseFloat(user.rows[0].balance - totalWinlose), parseFloat(user.rows[0].balance), totalWinlose, "Match Id = "+match.rows[0].id]
   );
 
-  let win = 0;
-  let lose = 0;
-  if(totalWinlose > 0)
-    win = Math.abs(totalWinlose);
-  else
-    lose = Math.abs(totalWinlose);
-
-  await client.query(
-  "INSERT INTO game_summary (game_type, game_id, uid, wallet_type, bet_amount, win, lose, merchant) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
-    ["MR", match.rows[0].id, req.user.userId, currencyType, totalBet, win, lose, req.user.merchant]
-  );
-    
   let response = {
     status: true,
     data: {
